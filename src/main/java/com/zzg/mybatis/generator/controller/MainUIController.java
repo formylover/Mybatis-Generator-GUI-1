@@ -67,13 +67,17 @@ public class MainUIController extends BaseFXController {
     @FXML
     private TextField projectFolderField;
     @FXML
-    private CheckBox offsetLimitCheckBox;
+    private CheckBox lombokAnnotationCheckBox;
+    @FXML
+    private CheckBox getterAndSetterCheckBox;
+    @FXML
+    private CheckBox toStringCheckBox;
+    @FXML
+    private CheckBox hashCodeAndEqualsCheckBox;
     @FXML
     private CheckBox commentCheckBox;
     @FXML
-    private CheckBox needToStringHashcodeEquals;
-    @FXML
-    private CheckBox annotationCheckBox;
+    private CheckBox jpaAnnotationCheckBox;
     @FXML
     private CheckBox useActualColumnNamesCheckbox;
     @FXML
@@ -298,11 +302,15 @@ public class MainUIController extends BaseFXController {
         generatorConfig.setMappingXMLTargetFolder(mappingTargetProject.getText());
         generatorConfig.setTableName(tableNameField.getText());
         generatorConfig.setDomainObjectName(domainObjectNameField.getText());
-        generatorConfig.setOffsetLimit(offsetLimitCheckBox.isSelected());
-        generatorConfig.setComment(commentCheckBox.isSelected());
-        generatorConfig.setNeedToStringHashcodeEquals(needToStringHashcodeEquals.isSelected());
-        generatorConfig.setAnnotation(annotationCheckBox.isSelected());
+
+        generatorConfig.setLombokAnnotation(lombokAnnotationCheckBox.isSelected());
+        generatorConfig.setGetterAndSetter(getterAndSetterCheckBox.isSelected());
+        generatorConfig.setToString(toStringCheckBox.isSelected());
+        generatorConfig.setHashCodeAndEquals(hashCodeAndEqualsCheckBox.isSelected());
+
+        generatorConfig.setJpaAnnotation(jpaAnnotationCheckBox.isSelected());
         generatorConfig.setUseActualColumnNames(useActualColumnNamesCheckbox.isSelected());
+        generatorConfig.setComment(commentCheckBox.isSelected());
         return generatorConfig;
     }
 

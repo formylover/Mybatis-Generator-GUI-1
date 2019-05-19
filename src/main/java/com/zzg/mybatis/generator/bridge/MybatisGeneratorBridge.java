@@ -28,151 +28,180 @@ import java.util.Set;
  */
 public class MybatisGeneratorBridge {
 
-	private static final Logger _LOG = LoggerFactory.getLogger(MybatisGeneratorBridge.class);
+	private static final Logger LOGGER = LoggerFactory.getLogger(MybatisGeneratorBridge.class);
 
-    private GeneratorConfig generatorConfig;
+	private GeneratorConfig generatorConfig;
 
-    private DatabaseConfig selectedDatabaseConfig;
+	private DatabaseConfig selectedDatabaseConfig;
 
-    private ProgressCallback progressCallback;
+	private ProgressCallback progressCallback;
 
-    private List<IgnoredColumn> ignoredColumns;
+	private List<IgnoredColumn> ignoredColumns;
 
-    private List<ColumnOverride> columnOverrides;
+	private List<ColumnOverride> columnOverrides;
 
-    public MybatisGeneratorBridge() {
-    }
+	public MybatisGeneratorBridge() {
+	}
 
-    public void setGeneratorConfig(GeneratorConfig generatorConfig) {
-        this.generatorConfig = generatorConfig;
-    }
+	public void setGeneratorConfig(GeneratorConfig generatorConfig) {
+		this.generatorConfig = generatorConfig;
+	}
 
-    public void setDatabaseConfig(DatabaseConfig databaseConfig) {
-        this.selectedDatabaseConfig = databaseConfig;
-    }
+	public void setDatabaseConfig(DatabaseConfig databaseConfig) {
+		this.selectedDatabaseConfig = databaseConfig;
+	}
 
-    public void generate() throws Exception {
-        Configuration configuration = new Configuration();
-        Context context = new Context(ModelType.CONDITIONAL);
-        configuration.addContext(context);
-        context.addProperty("javaFileEncoding", "UTF-8");
-	    String connectorLibPath = ConfigHelper.findConnectorLibPath(selectedDatabaseConfig.getDbType());
-	    _LOG.info("connectorLibPath: {}", connectorLibPath);
-	    configuration.addClasspathEntry(connectorLibPath);
-        // Table configuration
-        TableConfiguration tableConfig = new TableConfiguration(context);
-        tableConfig.setTableName(generatorConfig.getTableName());
-        tableConfig.setDomainObjectName(generatorConfig.getDomainObjectName());
+	public void setProgressCallback(ProgressCallback progressCallback) {
+		this.progressCallback = progressCallback;
+	}
 
-        // 针对 postgresql 单独配置
-        if (DbType.valueOf(selectedDatabaseConfig.getDbType()).getDriverClass() == "org.postgresql.Driver") {
-            tableConfig.setDelimitIdentifiers(true);
-        }
+	public void setIgnoredColumns(List<IgnoredColumn> ignoredColumns) {
+		this.ignoredColumns = ignoredColumns;
+	}
 
-        //添加GeneratedKey主键生成
+	public void setColumnOverrides(List<ColumnOverride> columnOverrides) {
+		this.columnOverrides = columnOverrides;
+	}
+
+
+	public void generate() throws Exception {
+		Configuration configuration = new Configuration();
+
+		// classPathEntry
+		String connectorLibPath = ConfigHelper.findConnectorLibPath(selectedDatabaseConfig.getDbType());
+		LOGGER.info("connectorLibPath: {}", connectorLibPath);
+		configuration.addClasspathEntry(connectorLibPath);
+
+		// context
+		Context context = new Context(ModelType.FLAT);
+		context.setId("hello world");
+		context.setTargetRuntime("MyBatis3Simple");
+		context.addProperty("javaFileEncoding", "UTF-8");
+		context.addProperty("javaFormatter", "org.mybatis.generator.api.dom.DefaultJavaFormatter");
+		context.addProperty("xmlFormatter", "org.mybatis.generator.api.dom.DefaultXmlFormatter");
+
+		// Table configuration
+		TableConfiguration tableConfig = new TableConfiguration(context);
+		tableConfig.setTableName(generatorConfig.getTableName());
+		tableConfig.setDomainObjectName(generatorConfig.getDomainObjectName());
+
+		// 针对 postgresql 单独配置
+		if (DbType.valueOf(selectedDatabaseConfig.getDbType()).getDriverClass().equals("org.postgresql.Driver")) {
+			tableConfig.setDelimitIdentifiers(true);
+		}
+
+		//添加GeneratedKey主键生成
 		if (StringUtils.isNoneEmpty(generatorConfig.getGenerateKeys())) {
 			tableConfig.setGeneratedKey(new GeneratedKey(generatorConfig.getGenerateKeys(), selectedDatabaseConfig.getDbType(), true, null));
 		}
+		// 设置Mapper名称
+		if (generatorConfig.getMapperName() != null) {
+			tableConfig.setMapperName(generatorConfig.getMapperName());
+		}
 
-        if (generatorConfig.getMapperName() != null) {
-            tableConfig.setMapperName(generatorConfig.getMapperName());
-        }
-        // add ignore columns
-        if (ignoredColumns != null) {
-            ignoredColumns.stream().forEach(ignoredColumn -> {
-                tableConfig.addIgnoredColumn(ignoredColumn);
-            });
-        }
-        if (columnOverrides != null) {
-            columnOverrides.stream().forEach(columnOverride -> {
-                tableConfig.addColumnOverride(columnOverride);
-            });
-        }
-        if (generatorConfig.isUseActualColumnNames()) {
+		// add ignore columns
+		if (ignoredColumns != null) {
+			ignoredColumns.forEach(tableConfig::addIgnoredColumn);
+		}
+		// add columns override
+		if (columnOverrides != null) {
+			columnOverrides.forEach(tableConfig::addColumnOverride);
+		}
+		// 使用列名
+		if (generatorConfig.isUseActualColumnNames()) {
 			tableConfig.addProperty("useActualColumnNames", "true");
-        }
-        JDBCConnectionConfiguration jdbcConfig = new JDBCConnectionConfiguration();
-        jdbcConfig.setDriverClass(DbType.valueOf(selectedDatabaseConfig.getDbType()).getDriverClass());
-        jdbcConfig.setConnectionURL(DbUtil.getConnectionUrlWithSchema(selectedDatabaseConfig));
-        jdbcConfig.setUserId(selectedDatabaseConfig.getUsername());
-        jdbcConfig.setPassword(selectedDatabaseConfig.getPassword());
-        // java model
-        JavaModelGeneratorConfiguration modelConfig = new JavaModelGeneratorConfiguration();
-        modelConfig.setTargetPackage(generatorConfig.getModelPackage());
-        modelConfig.setTargetProject(generatorConfig.getProjectFolder() + "/" + generatorConfig.getModelPackageTargetFolder());
-        // Mapper configuration
-        SqlMapGeneratorConfiguration mapperConfig = new SqlMapGeneratorConfiguration();
-        mapperConfig.setTargetPackage(generatorConfig.getMappingXMLPackage());
-        mapperConfig.setTargetProject(generatorConfig.getProjectFolder() + "/" + generatorConfig.getMappingXMLTargetFolder());
-        // DAO
-        JavaClientGeneratorConfiguration daoConfig = new JavaClientGeneratorConfiguration();
-        daoConfig.setConfigurationType("XMLMAPPER");
-        daoConfig.setTargetPackage(generatorConfig.getDaoPackage());
-        daoConfig.setTargetProject(generatorConfig.getProjectFolder() + "/" + generatorConfig.getDaoTargetFolder());
+		}
 
-        context.setId("myid");
-        context.addTableConfiguration(tableConfig);
-        context.setJdbcConnectionConfiguration(jdbcConfig);
-        context.setJdbcConnectionConfiguration(jdbcConfig);
-        context.setJavaModelGeneratorConfiguration(modelConfig);
-        context.setSqlMapGeneratorConfiguration(mapperConfig);
-        context.setJavaClientGeneratorConfiguration(daoConfig);
-        // Comment
-        CommentGeneratorConfiguration commentConfig = new CommentGeneratorConfiguration();
-        commentConfig.setConfigurationType(DbRemarksCommentGenerator.class.getName());
-        if (generatorConfig.isComment()) {
-            commentConfig.addProperty("columnRemarks", "true");
-        }
-        if (generatorConfig.isAnnotation()) {
-            commentConfig.addProperty("annotations", "true");
-        }
-        context.setCommentGeneratorConfiguration(commentConfig);
-        
-        //实体添加序列化
-        PluginConfiguration serializablePluginConfiguration = new PluginConfiguration();
-        serializablePluginConfiguration.addProperty("type", "org.mybatis.generator.plugins.SerializablePlugin");
-        serializablePluginConfiguration.setConfigurationType("org.mybatis.generator.plugins.SerializablePlugin");
-        context.addPluginConfiguration(serializablePluginConfiguration);
-        // toString, hashCode, equals插件
-        if (generatorConfig.isNeedToStringHashcodeEquals()) {
-            PluginConfiguration pluginConfiguration1 = new PluginConfiguration();
-            pluginConfiguration1.addProperty("type", "org.mybatis.generator.plugins.EqualsHashCodePlugin");
-            pluginConfiguration1.setConfigurationType("org.mybatis.generator.plugins.EqualsHashCodePlugin");
-            context.addPluginConfiguration(pluginConfiguration1);
-            PluginConfiguration pluginConfiguration2 = new PluginConfiguration();
-            pluginConfiguration2.addProperty("type", "org.mybatis.generator.plugins.ToStringPlugin");
-            pluginConfiguration2.setConfigurationType("org.mybatis.generator.plugins.ToStringPlugin");
-            context.addPluginConfiguration(pluginConfiguration2);
-        }
-        // limit/offset插件
-        if (generatorConfig.isOffsetLimit()) {
-            if (DbType.MySQL.name().equals(selectedDatabaseConfig.getDbType())
-		            || DbType.PostgreSQL.name().equals(selectedDatabaseConfig.getDbType())) {
-                PluginConfiguration pluginConfiguration = new PluginConfiguration();
-                pluginConfiguration.addProperty("type", "com.zzg.mybatis.generator.plugins.MySQLLimitPlugin");
-                pluginConfiguration.setConfigurationType("com.zzg.mybatis.generator.plugins.MySQLLimitPlugin");
-                context.addPluginConfiguration(pluginConfiguration);
-            }
-        }
-        context.setTargetRuntime("MyBatis3");
+		// jdbcConnection
+		JDBCConnectionConfiguration jdbcConfig = new JDBCConnectionConfiguration();
+		String driverClass = DbType.valueOf(selectedDatabaseConfig.getDbType()).getDriverClass();
+		jdbcConfig.setDriverClass(driverClass);
+		jdbcConfig.setConnectionURL(DbUtil.getConnectionUrlWithSchema(selectedDatabaseConfig));
+		jdbcConfig.setUserId(selectedDatabaseConfig.getUsername());
+		jdbcConfig.setPassword(selectedDatabaseConfig.getPassword());
 
-        List<String> warnings = new ArrayList<>();
-        Set<String> fullyqualifiedTables = new HashSet<>();
-        Set<String> contexts = new HashSet<>();
-        ShellCallback shellCallback = new DefaultShellCallback(true); // override=true
-        MyBatisGenerator myBatisGenerator = new MyBatisGenerator(configuration, shellCallback, warnings);
-        myBatisGenerator.generate(progressCallback, contexts, fullyqualifiedTables);
-    }
+		// java model
+		JavaModelGeneratorConfiguration modelConfig = new JavaModelGeneratorConfiguration();
+		modelConfig.setTargetPackage(generatorConfig.getModelPackage());
+		modelConfig.setTargetProject(generatorConfig.getProjectFolder() + "/" + generatorConfig.getModelPackageTargetFolder());
 
-	public void setProgressCallback(ProgressCallback progressCallback) {
-        this.progressCallback = progressCallback;
-    }
+		// XML Mapper
+		SqlMapGeneratorConfiguration mapperConfig = new SqlMapGeneratorConfiguration();
+		mapperConfig.setTargetPackage(generatorConfig.getMappingXMLPackage());
+		mapperConfig.setTargetProject(generatorConfig.getProjectFolder() + "/" + generatorConfig.getMappingXMLTargetFolder());
 
-    public void setIgnoredColumns(List<IgnoredColumn> ignoredColumns) {
-        this.ignoredColumns = ignoredColumns;
-    }
+		// Mapper Interface
+		JavaClientGeneratorConfiguration daoConfig = new JavaClientGeneratorConfiguration();
+		daoConfig.setConfigurationType("XMLMAPPER");
+		daoConfig.setTargetPackage(generatorConfig.getDaoPackage());
+		daoConfig.setTargetProject(generatorConfig.getProjectFolder() + "/" + generatorConfig.getDaoTargetFolder());
 
-    public void setColumnOverrides(List<ColumnOverride> columnOverrides) {
-        this.columnOverrides = columnOverrides;
-    }
+
+		context.setJdbcConnectionConfiguration(jdbcConfig);
+		context.setJavaModelGeneratorConfiguration(modelConfig);
+		context.setSqlMapGeneratorConfiguration(mapperConfig);
+		context.setJavaClientGeneratorConfiguration(daoConfig);
+		context.addTableConfiguration(tableConfig);
+
+		// Comment & jpaAnnotation
+		CommentGeneratorConfiguration commentConfig = new CommentGeneratorConfiguration();
+		commentConfig.setConfigurationType(DbRemarksCommentGenerator.class.getName());
+		if (generatorConfig.isComment()) {
+			commentConfig.addProperty("columnRemarks", "true");
+		}
+		if (generatorConfig.isJpaAnnotation()) {
+			commentConfig.addProperty("annotations", "true");
+		}
+		context.setCommentGeneratorConfiguration(commentConfig);
+
+		// 使用lombok注解
+		if (generatorConfig.enableLombokAnnotation()) {
+			PluginConfiguration lombokPluginConfiguration = new PluginConfiguration();
+			lombokPluginConfiguration.setConfigurationType("com.zzg.mybatis.generator.plugins.LombokPlugin");
+			if (generatorConfig.isToString() &&
+					generatorConfig.isHashCodeAndEquals() &&
+						generatorConfig.isGetterAndSetter()) { // 使用@Data
+				lombokPluginConfiguration.addProperty("data", "true");
+			}else{
+				if (generatorConfig.isGetterAndSetter()) {
+					lombokPluginConfiguration.addProperty("getter", "true");
+					lombokPluginConfiguration.addProperty("setter", "true");
+				}
+				if (generatorConfig.isToString()) {
+					lombokPluginConfiguration.addProperty("toString", "true");
+				}
+				if (generatorConfig.isHashCodeAndEquals()) {
+					lombokPluginConfiguration.addProperty("equalsAndHashCode", "true");
+				}
+			}
+			context.addPluginConfiguration(lombokPluginConfiguration);
+		} else { // 不使用lombok注解
+
+			if (generatorConfig.isToString()) {
+				PluginConfiguration toStringPluginConfig = new PluginConfiguration();
+				toStringPluginConfig.setConfigurationType("org.mybatis.generator.plugins.ToStringPlugin");
+				toStringPluginConfig.addProperty("type", "org.mybatis.generator.plugins.ToStringPlugin");
+				context.addPluginConfiguration(toStringPluginConfig);
+			}
+			if (generatorConfig.isHashCodeAndEquals()) {
+				PluginConfiguration hashCodeAndEqualsPluginConfig = new PluginConfiguration();
+				hashCodeAndEqualsPluginConfig.setConfigurationType("org.mybatis.generator.plugins.EqualsHashCodePlugin");
+				hashCodeAndEqualsPluginConfig.addProperty("type", "org.mybatis.generator.plugins.EqualsHashCodePlugin");
+				context.addPluginConfiguration(hashCodeAndEqualsPluginConfig);
+			}
+		}
+
+
+		configuration.addContext(context);
+
+		List<String> warnings = new ArrayList<>();
+		Set<String> fullyQualifiedTables = new HashSet<>();
+		Set<String> contexts = new HashSet<>();
+		// override=true
+		ShellCallback shellCallback = new DefaultShellCallback(true);
+		MyBatisGenerator myBatisGenerator = new MyBatisGenerator(configuration, shellCallback, warnings);
+		myBatisGenerator.generate(progressCallback, contexts, fullyQualifiedTables);
+	}
+
+
 }

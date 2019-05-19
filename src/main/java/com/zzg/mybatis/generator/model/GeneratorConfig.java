@@ -1,10 +1,9 @@
 package com.zzg.mybatis.generator.model;
 
 /**
- *
  * GeneratorConfig is the Config of mybatis generator config exclude database
  * config
- *
+ * <p>
  * Created by Owen on 6/16/16.
  */
 public class GeneratorConfig {
@@ -36,13 +35,17 @@ public class GeneratorConfig {
 
 	private String domainObjectName;
 
-	private boolean offsetLimit;
+	private boolean lombokAnnotation;
+
+	private boolean getterAndSetter;
+
+	private boolean toString;
+
+	private boolean hashCodeAndEquals;
 
 	private boolean comment;
 
-	private boolean needToStringHashcodeEquals;
-
-	private boolean annotation;
+	private boolean jpaAnnotation;
 
 	private boolean useActualColumnNames;
 
@@ -136,12 +139,36 @@ public class GeneratorConfig {
 		this.mappingXMLTargetFolder = mappingXMLTargetFolder;
 	}
 
-	public boolean isOffsetLimit() {
-		return offsetLimit;
+	public boolean enableLombokAnnotation() {
+		return lombokAnnotation;
 	}
 
-	public void setOffsetLimit(boolean offsetLimit) {
-		this.offsetLimit = offsetLimit;
+	public void setLombokAnnotation(boolean lombokAnnotation) {
+		this.lombokAnnotation = lombokAnnotation;
+	}
+
+	public boolean isGetterAndSetter() {
+		return getterAndSetter;
+	}
+
+	public void setGetterAndSetter(boolean getterAndSetter) {
+		this.getterAndSetter = getterAndSetter;
+	}
+
+	public boolean isToString() {
+		return toString;
+	}
+
+	public void setToString(boolean toString) {
+		this.toString = toString;
+	}
+
+	public boolean isHashCodeAndEquals() {
+		return hashCodeAndEquals;
+	}
+
+	public void setHashCodeAndEquals(boolean hashCodeAndEquals) {
+		this.hashCodeAndEquals = hashCodeAndEquals;
 	}
 
 	public boolean isComment() {
@@ -152,20 +179,12 @@ public class GeneratorConfig {
 		this.comment = comment;
 	}
 
-    public boolean isNeedToStringHashcodeEquals() {
-        return needToStringHashcodeEquals;
-    }
-
-    public void setNeedToStringHashcodeEquals(boolean needToStringHashcodeEquals) {
-        this.needToStringHashcodeEquals = needToStringHashcodeEquals;
-    }
-
-    public boolean isAnnotation() {
-		return annotation;
+	public boolean isJpaAnnotation() {
+		return jpaAnnotation;
 	}
 
-	public void setAnnotation(boolean annotation) {
-		this.annotation = annotation;
+	public void setJpaAnnotation(boolean jpaAnnotation) {
+		this.jpaAnnotation = jpaAnnotation;
 	}
 
 	public boolean isUseActualColumnNames() {
