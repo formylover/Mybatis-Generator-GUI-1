@@ -18,7 +18,7 @@ import java.net.URL;
  */
 public class MainUI extends Application {
 
-	private static final Logger _LOG = LoggerFactory.getLogger(MainUI.class);
+	private static final Logger LOGGER = LoggerFactory.getLogger(MainUI.class);
 
 	@Override
 	public void start(Stage primaryStage) throws Exception {
